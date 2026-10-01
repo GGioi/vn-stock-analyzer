@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VN Stock Analyzer – Phân tích kỹ thuật & định giá cổ phiếu Việt Nam</title>
+<meta name="description" content="Phân tích kỹ thuật, giá trị nội tại và phân tích báo cáo tài chính PDF cho cổ phiếu Việt Nam (HOSE, HNX, UPCoM).">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">📈 VN Stock <b>Analyzer</b></div>
+  <form id="symForm" class="search">
+    <input id="symInput" list="symList" placeholder="Mã CP (VNM, FPT, HPG...)" autocomplete="off" value="VNM">
+    <datalist id="symList"></datalist>
+    <button>Phân tích</button>
+  </form>
+  <div class="quick" id="quick"></div>
+</header>
+
+<section class="ticker" id="ticker"><span class="muted">Đang tải dữ liệu…</span></section>
+
+<nav class="tabs">
+  <button data-tab="tech" class="active">Phân tích kỹ thuật</button>
+  <button data-tab="val">Giá trị nội tại</button>
+  <button data-tab="pdf">Phân tích BCTC (PDF)</button>
+  <button data-tab="guide">Hướng dẫn</button>
+</nav>
+
+<main>
+<!-- ============ KỸ THUẬT ============ -->
+<section id="tab-tech" class="tab active">
+  <div class="toolbar">
+    <div class="seg" id="tfSeg">
+      <button data-tf="D" class="active">Ngày</button><button data-tf="W">Tuần</button><button data-tf="M">Tháng</button>
+    </div>
+    <label><input type="checkbox" id="oMA" checked> MA 20/50/200</label>
+    <label><input type="checkbox" id="oBB"> Bollinger</label>
+    <label><input type="checkbox" id="oIch"> Ichimoku</label>
+    <label><input type="checkbox" id="oFib"> Fibonacci</label>
+    <label><input type="checkbox" id="oSR" checked> Hỗ trợ/Kháng cự</label>
+  </div>
+  <div class="grid2">
+    <div class="card chartcard">
+      <div id="chMain" class="chart tall"></div>
+      <div class="lbl">RSI (14)</div><div id="chRSI" class="chart small"></div>
+      <div class="lbl">MACD (12,26,9)</div><div id="chMACD" class="chart small"></div>
+      <div class="lbl">Stochastic (14,3,3)</div><div id="chSTO" class="chart small"></div>
+    </div>
+    <div class="side">
+      <div class="card" id="summaryCard"></div>
+      <div class="card" id="levelsCard"></div>
+      <div class="card" id="patternCard"></div>
+    </div>
+  </div>
+  <div class="card" id="commentCard"></div>
+  <div class="card"><h3>Bảng chỉ báo kỹ thuật</h3><div id="indTable" class="tablewrap"></div></div>
+  <div class="card"><h3>Chỉ số cơ bản (VNDirect)</h3><div id="fundBox" class="kpis"></div></div>
+</section>
+
+<!-- ============ ĐỊNH GIÁ ============ -->
+<section id="tab-val" class="tab">
+  <div class="grid2v">
+    <div class="card">
+      <h3>Thông số đầu vào <small id="valSrc" class="muted"></small></h3>
+      <div class="form" id="valForm">
+        <label>Giá hiện tại (VND)<input id="v_price" type="number"></label>
+        <label>EPS 4 quý (VND/cp)<input id="v_eps" type="number"></label>
+        <label>BVPS – giá trị sổ sách (VND/cp)<input id="v_bvps" type="number"></label>
+        <label>ROE (%)<input id="v_roe" type="number" step="0.1"></label>
+        <label>Tăng trưởng LN giai đoạn 1 (%/năm)<input id="v_g1" type="number" step="0.1" value="10"></label>
+        <label>Số năm giai đoạn 1<input id="v_n" type="number" value="5"></label>
+        <label>Tăng trưởng dài hạn (%)<input id="v_gt" type="number" step="0.1" value="4"></label>
+        <label>Chi phí vốn chủ sở hữu r (%)<input id="v_r" type="number" step="0.1" value="12"></label>
+        <label>Tỷ lệ FCFE/Lợi nhuận (%)<input id="v_conv" type="number" value="80"></label>
+        <label>P/E mục tiêu (x)<input id="v_pe" type="number" step="0.1" value="12"></label>
+        <label>Lợi suất TPCP 10 năm (%)<input id="v_y" type="number" step="0.1" value="3.5"></label>
+        <label>Biên an toàn yêu cầu (%)<input id="v_mos" type="number" value="20"></label>
+      </div>
+      <button id="valCalc" class="primary">Tính giá trị nội tại</button>
+    </div>
+    <div class="card" id="valResult"><h3>Kết quả</h3><p class="muted">Bấm “Tính giá trị nội tại”.</p></div>
+  </div>
+  <div class="card note">
+    <b>Phương pháp:</b> (1) DCF dòng tiền vốn chủ (FCFE ≈ EPS × tỷ lệ chuyển đổi) 2 giai đoạn · (2) Graham Number = √(22,5 × EPS × BVPS) ·
+    (3) Công thức tăng trưởng Graham = EPS × (8,5 + 2g) × 4,4 / Y · (4) P/E mục tiêu × EPS dự phóng · (5) P/B hợp lý = (ROE − g)/(r − g) × BVPS.
+    Ngân hàng/bảo hiểm/chứng khoán nên ưu tiên phương pháp P/B–ROE; doanh nghiệp tăng trưởng chu kỳ nên thận trọng với DCF.
+  </div>
+</section>
+
+<!-- ============ PDF ============ -->
+<section id="tab-pdf" class="tab">
+  <div class="card">
+    <h3>Nhập báo cáo tài chính / kết quả kinh doanh (PDF)</h3>
+    <div id="drop" class="drop">
+      <p>Kéo thả file PDF vào đây hoặc <label class="link">chọn file<input type="file" id="pdfFile" accept="application/pdf" hidden></label></p>
+      <p class="muted">Xử lý hoàn toàn trên trình duyệt – file không được gửi lên máy chủ. Hỗ trợ PDF dạng văn bản (không phải ảnh scan).</p>
+    </div>
+    <div class="form inline">
+      <label>Kỳ báo cáo
+        <select id="p_period"><option value="4">Quý (quy năm ×4)</option><option value="2">6 tháng (×2)</option><option value="1" selected>Cả năm (×1)</option></select>
+      </label>
+      <label>Đơn vị<select id="p_unit"><option value="1">Đồng</option><option value="1e3">Nghìn đồng</option><option value="1e6">Triệu đồng</option><option value="1e9">Tỷ đồng</option></select></label>
+      <label>Số CP lưu hành<input id="p_shares" type="number" placeholder="tự lấy theo mã"></label>
+    </div>
+  </div>
+  <div id="pdfOut"></div>
+</section>
+
+<section id="tab-guide" class="tab">
+  <div class="card prose">
+    <h3>Hướng dẫn nhanh</h3>
+    <ul>
+      <li>Nhập mã cổ phiếu (HOSE/HNX/UPCoM) hoặc chỉ số VNINDEX, VN30, HNX, UPCOM rồi bấm <b>Phân tích</b>.</li>
+      <li><b>Phân tích kỹ thuật:</b> biểu đồ nến + MA/Bollinger/Ichimoku/Fibonacci, RSI, MACD, Stochastic, 20+ chỉ báo tự động tổng hợp tín hiệu Mua/Bán, mẫu hình nến, hỗ trợ – kháng cự, pivot.</li>
+      <li><b>Giá trị nội tại:</b> 5 mô hình định giá, tự điền EPS/BVPS/ROE từ dữ liệu thị trường; bạn có thể chỉnh các giả định.</li>
+      <li><b>Phân tích BCTC PDF:</b> tải báo cáo tài chính (quý/năm), hệ thống trích xuất doanh thu, lợi nhuận, tài sản, nợ, vốn chủ, dòng tiền… và tính ROE, ROA, biên lợi nhuận, đòn bẩy, rồi đẩy sang tab định giá.</li>
+      <li>Nguồn giá: VNDirect (trễ so với thời gian thực, dữ liệu cuối ngày).</li>
+    </ul>
+    <p class="warn">⚠️ Công cụ chỉ mang tính tham khảo, <b>không phải khuyến nghị đầu tư</b>. Mọi quyết định và rủi ro thuộc về nhà đầu tư.</p>
+  </div>
+</section>
+</main>
+<footer>© VN Stock Analyzer · Dữ liệu từ VNDirect · Chỉ mang tính tham khảo, không phải tư vấn đầu tư.</footer>
+<script src="indicators.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
